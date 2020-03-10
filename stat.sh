@@ -16,6 +16,9 @@
 #  |			 |
 
 
+# TODO: Check && install dependecies
+# TODO: More options for procs / network
+# TODO: Comments + README
 
 #### FUNCTIONS ####
 
@@ -126,6 +129,7 @@ function show_usage() {
 }
 
 
+# Function to check is service is active or not
 function check_service() {
 	# Inactive
 	if [ $(systemctl is-active $1) == "inactive" ]; then 
@@ -138,8 +142,8 @@ function check_service() {
 	fi
 }
 
+# Check every service status && display the status
 function show_services() {
-	# Check every service status from the config file
 	echo -e "${BOLD}${YELLOW}services:${RST}\n"
 	count=0
 	for service in "${services_arr[@]}"; do
@@ -153,7 +157,7 @@ function show_services() {
 	echo -e "\n"
 }
 
-
+# Display hard disk temperature
 function show_hard_temp(){
 
 	# Check what format (nvme, sda)
@@ -162,7 +166,7 @@ function show_hard_temp(){
 	# Get number of partitions
 	total_part=$(cat /proc/partitions | awk '{print $2}' | sed "7q;d")
 
-	# If nvme use nvme cmd utility
+	# If nvme use the nvme command utlity to retrieve the temp
 	if [[ $hard_type == *"nvme"* ]]; then
 		for i in $(eval echo "{1..$total_part}");do
 			hpart="${hard_type}p$i"
@@ -184,6 +188,7 @@ function show_hard_temp(){
 	fi
 }
 
+# Display CPU Core && Hard Disk Temperatures
 function show_temperature() {
 	echo -e "${BOLD}${YELLOW}temperatures${RST}\n"
 	core_nr=""
@@ -214,7 +219,7 @@ function show_temperature() {
 	show_hard_temp
 }
 
-
+# Display the 10 most intensive CPU processes
 function show_procs() {
 	echo -e "${BOLD}${YELLOW}processes:${RST}\n"
 	ps -Ao user,comm,pid,pcpu,size,start_time --sort=-pcpu | head -n 10
@@ -227,6 +232,7 @@ function show_procs() {
 	time_since=$((($(date +%s)-$(date --date="$last_pac" +%s))/3600))
 	echo -e "\nIt has been ${BOLD}$time_since hour$([ $time_since -ne 1 ] && echo s)${RST} since your last $(tput setaf 5)pacman -Syu${RST}"
 }
+
 
 #### GLOBAL VARIABLES ####
 
@@ -256,19 +262,8 @@ no_args=1
 max_usage=90
 bar_width=50
 
-# Main
-#	-p -- show procs
-#	-n -- network
-#	-u -- usage (cpu, hard)
-#	-t -- temperature
-#	-i -- sys info
-#	-s -- services
-#	
-#	Default everything is turned on and services are: nginx, sshd, tor, mongodb
 
-
-# stat -p (shows only procs)
-
+#### MAIN SCRIPT ####
 
 # Check if script is ran as root
 [ "$EUID" -ne 0 ] && echo "${BOLD}${RED}This script needs to be executed by root${RST}" && exit 1
