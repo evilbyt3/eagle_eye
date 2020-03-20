@@ -62,6 +62,70 @@ function display_system_info() {
   CPU.......:	$CPU\n"
 }
 
+function hard_usage() {
+
+	# disk usage: ignore zfs, squashfs & tmpfs
+	mapfile -t dfs < <(df -H -x zfs -x squashfs -x tmpfs -x devtmpfs -x overlay --output=target,pcent,size | tail -n+2)
+
+	for line in "${dfs[@]}"; do
+		# get disk usage
+		usage=$(echo "$line" | awk '{print $2}' | sed 's/%//')
+		used_width=$((($usage*$bar_width)/100))
+		# color is green if usage < max_usage, else red
+		if [ "${usage}" -ge "${max_usage}" ]; then
+			color=$RED
+		else
+			color=$GREEN
+		fi
+		# print green/red bar until used_width
+		bar="[${color}"
+		for ((i=0; i<$used_width; i++)); do
+			bar+="="
+		done
+		# print dimmmed bar until end
+		bar+="${WHITE}${dim}"
+		for ((i=$used_width; i<$bar_width; i++)); do
+			bar+="="
+		done
+		bar+="${undim}]"
+		# print usage line & bar
+		echo "${line}" | awk '{ printf("%-31s%+3s used out of %+4s\n", $1, $2, $3); }' | sed -e 's/^/  /'
+		echo -e "${bar}" | sed -e 's/^/  /'
+	done
+}
+
+
+function cpu_usage() {
+  # 0 1:user 2:unice 3:sys 4:idle 5:iowait 6:irq 7:softirq 8:steal 9:guest 10:?
+  ncpu=($(head -1</proc/stat))
+  sum="${ncpu[@]:1:5}"
+
+  cpu_total=$((${sum// /+}))
+  cpu_maxval=$((cpu_total - ocpu_total))
+  cpu_val=$((cpu_maxval - (ncpu[4]-ocpu[4])))
+  cpu_percentage=$((100 * cpu_val / cpu_maxval))
+
+  ocpu=("${ncpu[@]}")
+  ocpu_total=$cpu_total
+
+  printf -v bar "  %$((($(tput cols) - 5) * cpu_percentage / 100))s" ""
+  printf ' %3d%% %s\n' "$cpu_percentage" "${bar// /█}"
+}
+
+
+
+function show_usage() {
+	echo -e "${BOLD}${YELLOW}usage:${RST}\n"
+
+	# Thanks god you are a living human being ( https://github.com/yboetz/motd/blob/master/35-diskspace )
+	hard_usage
+
+	# CPU ( kuddos to this guy https://blog.yjl.im/2010/12/cpu-utilization-calculation-in-bash.html )
+	echo -e "\n   ${GREEN}CPU${RST}"
+	cpu_usage
+	echo -e "\n"
+}
+
 
 
 #### GLOBAL VARIABLES ####
@@ -88,6 +152,8 @@ services=(nginx sshd tor mongodb)
 # Config
 script_name=$0
 no_args=1
+max_usage=90
+bar_width=50
 
 # Main
 #	-p -- show procs
@@ -118,4 +184,5 @@ while getopts ":pnuis:h" opts; do
 done
 
 [ $sinfo -eq 1 ] && display_system_info
+[ $susage -eq 1 ] && show_usage
 # [ -n $sprocs ] && 
