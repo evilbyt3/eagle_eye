@@ -179,9 +179,9 @@ function show_hard_temp(){
 
 			# Print 2 partitons per line
 			if (( i % 2 )); then
-				printf "  ${color}$hpart: $htemp°C${RST}\t\t"
+				printf "  ${color}${BLACK}$hpart: $htemp°C${RST}\t\t"
 			else
-				printf "  ${color}$hpart: $htemp°C${RST}\n"
+				printf "  ${color}${BLACK}$hpart: $htemp°C${RST}\n"
 			fi
 		done
 	# Else use hddtemp (TODO)
