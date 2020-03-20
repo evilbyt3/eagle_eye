@@ -20,7 +20,7 @@
 #### FUNCTIONS ####
 
 function usage() {
-	printf "  Usage: $script_name <options>\n\t-i -- Show system information\n\t-u -- Show usage (cpu, hard disk partitions)\n\t-s -- Show status of the provided services. Services need to be separated by a space (default: nginx, tor, sshd, mongodb)\n\t-t -- Show temperatures (CPU Cores, Partitions)\n\t-p -- Show processes\n"
+	printf "  Usage: $script_name <options>\n\t-i -- Show system information\n\t-u -- Show usage (cpu, hard disk partitions)\n\t-s -- Show status of the provided services. Services need to be separated by a comma and without spaces (e.g: nginx,tor,sshd,mongodb)\n\t-t -- Show temperatures (CPU Cores, Partitions)\n\t-p -- Show processes\n"
 }
 
 # This function displays a basic overview of your system
@@ -62,6 +62,7 @@ function display_system_info() {
   CPU.......:	$CPU\n"
 }
 
+
 function hard_usage() {
 
 	# disk usage: ignore zfs, squashfs & tmpfs
@@ -94,7 +95,6 @@ function hard_usage() {
 	done
 }
 
-
 function cpu_usage() {
   # 0 1:user 2:unice 3:sys 4:idle 5:iowait 6:irq 7:softirq 8:steal 9:guest 10:?
   ncpu=($(head -1</proc/stat))
@@ -112,8 +112,6 @@ function cpu_usage() {
   printf ' %3d%% %s\n' "$cpu_percentage" "${bar// /█}"
 }
 
-
-
 function show_usage() {
 	echo -e "${BOLD}${YELLOW}usage:${RST}\n"
 
@@ -126,6 +124,33 @@ function show_usage() {
 	echo -e "\n"
 }
 
+
+function check_service() {
+	# Inactive
+	if [ $(systemctl is-active $1) == "inactive" ]; then 
+		[ "$2" == "1" ] && printf "  $1:\t${RED}  inactive ${RST}\n"
+		[ "$2" == "1" ] || printf "  $1:\t${RED}  inactive ${RST}\t"
+	# Active
+	else
+		[ "$2" == "1" ] && printf "  $1:\t${GREEN}  active ${RST}\n"
+		[ "$2" == "1" ] || printf "  $1:\t${GREEN}  active ${RST}\t"
+	fi
+}
+
+function show_services() {
+	# Check every service status from the config file
+	echo -e "${BOLD}${YELLOW}services:${RST}\n"
+	count=0
+	for service in "${services_arr[@]}"; do
+		if !(( count % 2 )); then
+			check_service $service
+		else
+			check_service $service 1
+		fi
+		((count++))
+	done
+	echo -e "\n"
+}
 
 
 #### GLOBAL VARIABLES ####
@@ -147,7 +172,7 @@ snet=0
 susage=0
 sinfo=0
 stemp=0
-services=(nginx sshd tor mongodb)
+services_arr=(nginx sshd tor mongodb)
 
 # Config
 script_name=$0
@@ -185,4 +210,6 @@ done
 
 [ $sinfo -eq 1 ] && display_system_info
 [ $susage -eq 1 ] && show_usage
+[ -n $services ] && read -ra services_arr <<< $(echo -e "$services" | tr "," " ") && show_services
+
 # [ -n $sprocs ] && 
