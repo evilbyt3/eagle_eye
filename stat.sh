@@ -153,6 +153,66 @@ function show_services() {
 }
 
 
+function show_hard_temp(){
+
+	# Check what format (nvme, sda)
+	hard_type="$(lsblk | awk '{print $1}' | sed "2q;d")"
+
+	# Get number of partitions
+	total_part=$(cat /proc/partitions | awk '{print $2}' | sed "7q;d")
+
+	# If nvme use nvme cmd utility
+	if [[ $hard_type == *"nvme"* ]]; then
+		for i in $(eval echo "{1..$total_part}");do
+			hpart="${hard_type}p$i"
+			htemp=$(nvme smart-log /dev/$hpart | grep "^temperature" | awk '{print $3}')
+
+			# Choose color based on temperature
+			color=`tput setab 2`	# Green
+			[ $htemp -gt "34" ] && color=`tput setab 1`	# Red
+			[ $htemp -gt "30" ] && color=`tput setab 3`	# Yellow
+
+			# Print 2 partitons per line
+			if (( i % 2 )); then
+				printf "  ${color}$hpart: $htemp°C${RST}\t\t"
+			else
+				printf "  ${color}$hpart: $htemp°C${RST}\n"
+			fi
+		done
+	# Else use hddtemp (TODO)
+	fi
+}
+
+function show_temperature() {
+	echo -e "${BOLD}${YELLOW}temperatures${RST}\n"
+	core_nr=""
+	count=0
+	while read -r core; do
+
+		# Retrieve core number and temperature
+		core_nr="$(echo -e $core | awk '{print $2}')"
+		temp="$(echo -e $core | awk '{print $3}' | sed -e 's/..$//' | cut -c2-)"
+
+		# Set color based on temperature
+		color=`tput setab 2`	# Green
+		[ "$(echo -e "$temp" | sed -e 's/..$//')" -gt "50" ] && color=`tput setab 1`	# Red
+		[ "$(echo -e "$temp" | sed -e 's/..$//')" -gt "48" ] && color=`tput setab 3`	# Yellow
+
+		# Set format based on the number of the core
+		if [ "$count" -eq "1" ]; then
+			printf "  ${color}${BLACK}CORE $core_nr $temp °C${RST}\n"
+		else
+			printf "  ${color}${BLACK}CORE $core_nr $temp °C${RST}\t\t"
+		fi
+
+		((count+=1))
+
+	done <<< $(sensors | grep Core | awk '{print $1,$2,$3}' )
+	echo -e "\n"
+
+	show_hard_temp
+}
+
 #### GLOBAL VARIABLES ####
 
 # Colors
@@ -173,6 +233,7 @@ susage=0
 sinfo=0
 stemp=0
 services_arr=(nginx sshd tor mongodb)
+services=""
 
 # Config
 script_name=$0
@@ -194,7 +255,10 @@ bar_width=50
 # stat -p (shows only procs)
 
 
-while getopts ":pnuis:h" opts; do
+# Check if script is ran as root
+[ "$EUID" -ne 0 ] && echo "${BOLD}${RED}This script needs to be executed by root${RST}" && exit 1
+
+while getopts ":pnuits:h" opts; do
 	case "${opts}" in
 		p) sprocs=1;;
 		n) snet=1;;
@@ -210,6 +274,5 @@ done
 
 [ $sinfo -eq 1 ] && display_system_info
 [ $susage -eq 1 ] && show_usage
-[ -n $services ] && read -ra services_arr <<< $(echo -e "$services" | tr "," " ") && show_services
-
-# [ -n $sprocs ] && 
+[ -n "$services" ] && read -ra services_arr <<< $(echo -e "$services" | tr "," " ") && show_services
+[ $stemp -eq 1 ] && show_temperature
