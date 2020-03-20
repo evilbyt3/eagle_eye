@@ -122,6 +122,7 @@ function show_usage() {
 	echo -e "\n   ${GREEN}CPU${RST}"
 	cpu_usage
 	echo -e "\n"
+
 }
 
 
@@ -213,6 +214,20 @@ function show_temperature() {
 	show_hard_temp
 }
 
+
+function show_procs() {
+	echo -e "${BOLD}${YELLOW}processes:${RST}\n"
+	ps -Ao user,comm,pid,pcpu,size,start_time --sort=-pcpu | head -n 10
+	# Most intensite procs for memory && cpu
+	echo -e "\n${BOLD}${GREEN}High CPU Process...${RST}: $(ps axch -o cmd:15,%cpu --sort=-%cpu | head -n 1)"
+	echo -e "${BOLD}${GREEN}High Memory Process${RST}: $(ps axch -o cmd:15,%mem --sort=-%mem| head -n 1)"
+
+	# Since when you upgraded pkgs?		TODO: Choose package manager based on distro
+	last_pac=$(tac /var/log/pacman.log | grep -m1 -F "[PACMAN] starting full system upgrade" | cut -d "[" -f2 | cut -d "]" -f1)
+	time_since=$((($(date +%s)-$(date --date="$last_pac" +%s))/3600))
+	echo -e "\nIt has been ${BOLD}$time_since hour$([ $time_since -ne 1 ] && echo s)${RST} since your last $(tput setaf 5)pacman -Syu${RST}"
+}
+
 #### GLOBAL VARIABLES ####
 
 # Colors
@@ -274,5 +289,7 @@ done
 
 [ $sinfo -eq 1 ] && display_system_info
 [ $susage -eq 1 ] && show_usage
+[ $snet -eq 1 ] && echo -e "\n${BOLD}${YELLOW}network:${RST}\n`vnstat`\n\n"
 [ -n "$services" ] && read -ra services_arr <<< $(echo -e "$services" | tr "," " ") && show_services
 [ $stemp -eq 1 ] && show_temperature
+[ $sprocs -eq 1 ] && show_procs
