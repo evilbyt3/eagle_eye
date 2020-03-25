@@ -26,6 +26,30 @@ function usage() {
 	printf "  Usage: $script_name <options>\n\t-i -- Show system information\n\t-u -- Show usage (cpu, hard disk partitions)\n\t-s -- Show status of the provided services. Services need to be separated by a comma and without spaces (e.g: nginx,tor,sshd,mongodb)\n\t-t -- Show temperatures (CPU Cores, Partitions)\n\t-p -- Show processes\n"
 }
 
+function install_pkgs() {
+	# Choose package manager
+	declare -A osInfo;
+	osInfo[/etc/debian_version]="apt-get install -y"
+	osInfo[/etc/alpine-release]="apk --update add"
+	osInfo[/etc/centos-release]="yum install -y"
+	osInfo[/etc/fedora-release]="dnf install -y"
+	osInfo[/etc/arch-release]="pacman -S"
+
+	for f in ${!osInfo[@]}; do
+		if [[ -f $f ]]; then
+			package_manager=${osInfo[$f]}
+		fi
+	done
+
+	# Check what pkgs are installed
+	[ -z "$(command -v vnstat)" ] && ${package_manager} vnstat
+	[ -z "$(command -v nvme)" ] && ${package_manager} nvme-cli
+	[ -z "$(command -v sensors)" ] && ${package_manager} lm_sensors || ${package_manager} lm-sensors 2>/dev/null
+	[ -z "$(command -v hddtemp)" ] && ${package_manager} hddtemp
+}
+
+
+
 # This function displays a basic overview of your system
 # such as: Distribution, kernel version, processes, memory, etc
 function display_system_info() {
@@ -253,6 +277,7 @@ snet=0
 susage=0
 sinfo=0
 stemp=0
+sdemp=0
 services_arr=(nginx sshd tor mongodb)
 services=""
 
@@ -268,7 +293,7 @@ bar_width=50
 # Check if script is ran as root
 [ "$EUID" -ne 0 ] && echo "${BOLD}${RED}This script needs to be executed by root${RST}" && exit 1
 
-while getopts ":pnuits:h" opts; do
+while getopts ":pnudits:h" opts; do
 	case "${opts}" in
 		p) sprocs=1;;
 		n) snet=1;;
@@ -276,6 +301,7 @@ while getopts ":pnuits:h" opts; do
 		i) sinfo=1;;
 		s) services=${OPTARG};;
 		t) stemp=1;;
+		d) sdemp=1;;
 		h) usage && exit;;
 		*) usage && exit;;
 	esac
@@ -297,6 +323,7 @@ cat << "EOF"
 EOF
 echo -e "\n"
 
+[ $sdemp -eq 1 ] && install_pkgs
 [ $sinfo -eq 1 ] && display_system_info
 [ $susage -eq 1 ] && show_usage
 [ $snet -eq 1 ] && echo -e "\n${BOLD}${YELLOW}network:${RST}\n`vnstat`\n\n"
