@@ -1,21 +1,4 @@
 #!/bin/bash
-#	 ___________	
-#   |.---------.|		Contact
-#   ||         ||		-------
-#   || JellyPi ||			Website:	
-#   ||         ||			Gitlab : https://gitlab.com/JellyPi101
-#   |'---------'|
-#	`._________.'		Description
-#	   |	 |			-----------
-#	  /		  \				
-#   .-		   -.  			
-#  /		 	 \ 			Options 
-#  |			 |				
-#  |			 |				
-#  |			 |
-#  |			 |
-
-
 # TODO: Check && install dependecies
 # TODO: More options for procs / network
 # TODO: README
