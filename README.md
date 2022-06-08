@@ -6,7 +6,7 @@
 - Most intensive CPU && Memory processes
 - Uptime, Kernel, Used Memory and Uptime
 
-![Script Image Preview](https://gitlab.com/JellyPi101/eagle-eye/-/raw/master/eagle_eye.png)
+![Script Image Preview](eagle_eye.png)
 
 # Usage
 In order to see all the available options you can execute: `sudo ./eeye -h`
@@ -24,7 +24,7 @@ In order to see all the available options you can execute: `sudo ./eeye -h`
 
 
 # Setting it up
-1. Once you deploy your server, you ca simply `git clone https://gitlab.com/JellyPi101/eagle-eye.git`
-2. Then copy the script into your custom scripts path (for me that's `~/.scripts`): `cp eagle-eye/eeye ~/.scripts`
+1. Once you deploy your server, you ca simply `git clone https://github.com/vlagh3/eagle_eye.git`
+2. Then copy the script into your custom scripts path (for me that's `~/.local/bin`): `cp eagle-eye/eeye ~/.local/bin/`
 3. Add it to your `.bashrc`: `sudo eeye -i -u -s sshd,nginx,ntpd -p`
 4. Change your `/etc/sudoers` file, with `visudo`, and add `%<your_group> ALL=(ALL) NOPASSWD: /home/<your_user>/.scripts/eeye`
